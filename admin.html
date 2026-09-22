@@ -50,7 +50,14 @@
   <p class="help">가로·세로를 비워두면 사진 비율을 유지하면서 표시 영역 안에 자동으로 맞춥니다. 사진이 잘리지 않습니다.</p>
  </section>
  <section class="box">
-  <h2>③ 저장 방법</h2>
+  <h2>③ 전화번호 관리</h2>
+  <label class="label">전화번호</label>
+  <input id="phoneNumber" class="input" type="tel" inputmode="numeric" autocomplete="tel" placeholder="010-0000-0000">
+  <div class="actions"><button id="applyPhone" class="btn dark">전화번호 미리보기 반영</button><button id="resetPhone" class="btn gray">원래 번호 복구</button></div>
+  <p class="help">여기에서 번호 하나만 바꾸면 문의하기와 하단의 <b>표시 번호 + 실제 전화 연결 번호</b>가 모두 같은 번호로 변경됩니다.</p>
+ </section>
+ <section class="box">
+  <h2>④ 저장 방법</h2>
   <p class="help" style="margin-top:0">수정이 끝나면 <b>GitHub에 저장</b>을 누르세요. 수정된 index.html이 GitHub에 자동 반영되고 Render가 홈페이지를 다시 배포합니다. style.css / script.js / assets는 그대로 유지됩니다.</p>
  </section>
 </aside>
@@ -98,6 +105,24 @@ function textSetPreserve(n,text){
 }
 function applyText(){const n=node();if(!n)return;textSetPreserve(n,$('content').value);n.style.fontSize=$('size').value+'px';n.style.lineHeight=$('line').value;n.style.color=$('color').value;render()}
 function resetText(){const fresh=parse();const t=TARGETS.find(x=>x.id===$('target').value);const old=doc.querySelector(t.selector),neu=fresh.querySelector(t.selector);if(old&&neu)old.replaceWith(neu);fill();render()}
+function normalizePhone(v){return v.trim().replace(/[^0-9+]/g,'')}
+function displayPhone(v){const n=normalizePhone(v);if(/^01[0-9]\d{7,8}$/.test(n)&&n.length===11)return n.slice(0,3)+'-'+n.slice(3,7)+'-'+n.slice(7);return v.trim()}
+function currentPhone(){const a=doc.querySelector('.contact .phone-card');const href=a?.getAttribute('href')||'';const m=href.match(/^tel:(.+)$/i);if(m)return displayPhone(m[1]);const f=doc.querySelector('footer .footer-info a[href^="tel:"]');return f?displayPhone((f.getAttribute('href')||'').replace(/^tel:/i,'')):''}
+function fillPhone(){$('phoneNumber').value=currentPhone()}
+function applyPhone(){
+  const shown=displayPhone($('phoneNumber').value);
+  const tel=normalizePhone(shown);
+  if(!tel){alert('전화번호를 입력해주세요.');return}
+  const contact=doc.querySelector('.contact .phone-card');
+  const contactSmall=doc.querySelector('.contact .phone-card small');
+  const footer=doc.querySelector('footer .footer-info a[href^="tel:"]');
+  if(contact){contact.setAttribute('href','tel:'+tel)}
+  if(contactSmall){contactSmall.textContent=shown}
+  if(footer){footer.setAttribute('href','tel:'+tel);footer.lastChild.nodeValue=shown}
+  $('phoneNumber').value=shown;
+  render();
+}
+function resetPhone(){const fresh=parse();const freshContact=fresh.querySelector('.contact .phone-card');const freshSmall=fresh.querySelector('.contact .phone-card small');const freshFooter=fresh.querySelector('footer .footer-info a[href^="tel:"]');const contact=doc.querySelector('.contact .phone-card');const contactSmall=doc.querySelector('.contact .phone-card small');const footer=doc.querySelector('footer .footer-info a[href^="tel:"]');if(contact&&freshContact)contact.setAttribute('href',freshContact.getAttribute('href'));if(contactSmall&&freshSmall)contactSmall.textContent=freshSmall.textContent;if(footer&&freshFooter){footer.setAttribute('href',freshFooter.getAttribute('href'));footer.lastChild.nodeValue=freshFooter.lastChild.nodeValue}fillPhone();render()}
 function imgTarget(){return $('imageTarget').value}
 function imageNode(key){
  const m={headerLogo:['img.header-logo-image'],season1:['.season-one img'],season2:['.season-two img'],spaceLarge:['.photo-placeholder.large'],spaceSmall:['.space-side .photo-placeholder']};
@@ -192,7 +217,8 @@ $('apiLoginButton').onclick=login;
 $('apiLoginPassword').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
 
 function init(){doc=parse();TARGETS.forEach(t=>{const o=document.createElement('option');o.value=t.id;o.textContent=t.label;$('target').appendChild(o)});const imgs=[['headerLogo','상단 로고'],['season1','시즌 1 포스터'],['season2','시즌 2 포스터'],['spaceLarge','SPACE PHOTO · 큰 사진'],['spaceSmall','PLAY ZONE · 작은 사진']];imgs.forEach(([id,label])=>{const o=document.createElement('option');o.value=id;o.textContent=label;$('imageTarget').appendChild(o)});fill();render();status('원본 홈페이지 불러오기 완료')}
-$('target').onchange=fill;$('applyText').onclick=applyText;$('resetText').onclick=resetText;$('applyImage').onclick=applyImage;$('resetImage').onclick=resetImage;$('save').onclick=save;$('undoAll').onclick=()=>{if(confirm('모든 변경사항을 취소하고 원본으로 돌아갈까요?')){doc=parse();fill();render();status('모든 변경사항을 취소했습니다')}};
+$('target').onchange=fill;$('applyText').onclick=applyText;$('resetText').onclick=resetText;$('applyImage').onclick=applyImage;$('resetImage').onclick=resetImage;$('applyPhone').onclick=applyPhone;$('resetPhone').onclick=resetPhone;$('save').onclick=save;$('undoAll').onclick=()=>{if(confirm('모든 변경사항을 취소하고 원본으로 돌아갈까요?')){doc=parse();fill();render();status('모든 변경사항을 취소했습니다')}};
 init();
+fillPhone();
 </script>
 </body></html>
