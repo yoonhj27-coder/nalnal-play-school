@@ -39,15 +39,15 @@
   <div class="grid2"><div><label class="label">글자 크기 (px)</label><input id="size" class="input" type="number" min="8" max="120"></div><div><label class="label">행간</label><input id="line" class="input" type="number" min="0.8" max="3" step="0.05"></div></div>
   <label class="label">글자색</label><input id="color" class="color" type="color" value="#27344a">
   <div class="actions"><button id="applyText" class="btn dark">미리보기 반영</button><button id="resetText" class="btn gray">이 항목 원상복구</button></div>
-  <p class="help">내용은 Enter 줄바꿈을 그대로 반영합니다. 글자 크기·행간·색상은 선택한 항목에만 적용됩니다.</p>
+  <p class="help">내용은 줄바꿈을 그대로 반영합니다. 글자 크기·행간·색상은 선택한 항목에만 적용됩니다.</p>
  </section>
  <section class="box">
   <h2>② 사진 추가 / 교체</h2>
   <label class="label">사진 위치</label><select id="imageTarget" class="select"></select>
   <label class="label">새 사진</label><input id="imageFile" class="file" type="file" accept="image/*">
-  <div class="grid2"><div><label class="label">가로 (px)</label><input id="imgW" class="input" type="number" min="20"></div><div><label class="label">세로 (px)</label><input id="imgH" class="input" type="number" min="20"></div></div>
+  <div class="grid2"><div><label class="label">가로 (px) · 선택</label><input id="imgW" class="input" type="number" min="20" placeholder="자동 맞춤"></div><div><label class="label">세로 (px) · 선택</label><input id="imgH" class="input" type="number" min="20" placeholder="자동 맞춤"></div></div>
   <div class="actions"><button id="applyImage" class="btn dark">사진 미리보기</button><button id="resetImage" class="btn gray">원래 사진 복구</button></div>
-  <p class="help">새 사진은 저장되는 index.html 안에 포함됩니다. 기존 사진은 원래 assets 경로를 유지합니다.</p>
+  <p class="help">가로·세로를 비워두면 사진 비율을 유지하면서 표시 영역 안에 자동으로 맞춥니다. 사진이 잘리지 않습니다.</p>
  </section>
  <section class="box">
   <h2>③ 저장 방법</h2>
@@ -80,126 +80,23 @@ function render(){
   status('미리보기 반영 완료');
 }
 function computed(n){return getComputedStyle(n)}
-let initialColor='#27344a';
-let initialSize=16;
-let initialLine=1.5;
 function fill(){
  const n=node(); if(!n)return;
  $('content').value=n.innerText.replace(/\n$/,'');
- const c=computed(n);
- initialSize=parseFloat(n.style.fontSize)||parseFloat(c.fontSize)||16;
- initialLine=parseFloat(n.style.lineHeight)||1.5;
- $('size').value=initialSize; $('line').value=initialLine;
- const rgb=c.color.match(/\d+/g);
- initialColor=(rgb&&rgb.length>=3)?'#'+rgb.slice(0,3).map(x=>parseInt(x).toString(16).padStart(2,'0')).join(''):'#27344a';
- $('color').value=initialColor;
+ const c=computed(n); $('size').value=parseFloat(n.style.fontSize)||parseFloat(c.fontSize)||16; $('line').value=parseFloat(n.style.lineHeight)||1.5;
+ const rgb=c.color.match(/\d+/g); if(rgb&&rgb.length>=3)$('color').value='#'+rgb.slice(0,3).map(x=>parseInt(x).toString(16).padStart(2,'0')).join('');
  const t=TARGETS.find(x=>x.id===$('target').value); $('targetNote').textContent=t.note||'';
 }
 function textSetPreserve(n,text){
-  // Never rebuild the target element's HTML. We only replace text inside the
-  // existing text containers so all original colors, <em>/<strong>/<span>,
-  // <br>, spacing and layout remain intact.
-  if(n.matches && n.matches('.hero-eyebrow')){
-    const spans=[
-      n.querySelector('.eyebrow-play'),
-      n.querySelector('.eyebrow-connect'),
-      n.querySelector('.eyebrow-smile')
-    ];
-    // The textarea can contain visual line wraps/newlines from innerText.
-    // Normalize them first, then split on the real separator used by the
-    // original design. This prevents PLAY/CONNECT/SMILE from being split
-    // character-by-character.
-    const normalized=text.replace(/\r/g,' ').replace(/\n/g,' ').replace(/\s+/g,' ').trim();
-    let parts=normalized.split(/\s*[·•]\s*/).map(v=>v.trim()).filter(Boolean);
-    if(parts.length<3){
-      const lineParts=text.replace(/\r/g,'\n').split(/\n+/).map(v=>v.trim()).filter(v=>v && !/^[·•]$/.test(v));
-      if(lineParts.length>=3) parts=lineParts.slice(0,3);
-    }
-    if(parts.length<3){
-      const words=normalized.split(/\s+/).filter(Boolean);
-      if(words.length>=3) parts=[words[0],words[1],words.slice(2).join(' ')];
-    }
-    spans.forEach((el,i)=>{if(el&&parts[i]!==undefined)el.textContent=parts[i]});
-    return;
-  }
-
-  // Plain-text targets behave like a word processor: every Enter in the
-  // textarea becomes a real <br> in the preview, regardless of how many
-  // line breaks the original homepage had.
-  const lines=text.replace(/\r/g,'').split('\n');
-  const hasInlineFormatting=Array.from(n.children).some(el=>el.tagName!=='BR');
-  if(!hasInlineFormatting){
-    while(n.firstChild)n.removeChild(n.firstChild);
-    lines.forEach((line,i)=>{
-      if(i)n.appendChild(doc.createElement('br'));
-      n.appendChild(doc.createTextNode(line));
-    });
-    return;
-  }
-
-  // If the target contains existing inline formatting (for example <em> or
-  // <strong>), preserve that structure and only use the original <br>
-  // boundaries when the number of lines still matches.
-  const brs=Array.from(n.querySelectorAll('br'));
-  if(brs.length){
-    const groups=[]; let group=[];
-    const walker=doc.createTreeWalker(n,NodeFilter.SHOW_ALL);
-    let cur;
-    while(cur=walker.nextNode()){
-      if(cur.nodeType===Node.TEXT_NODE) group.push(cur);
-      else if(cur.nodeType===Node.ELEMENT_NODE && cur.tagName==='BR'){groups.push(group);group=[];}
-    }
-    groups.push(group);
-    if(groups.length===lines.length){
-      groups.forEach((g,i)=>{
-        if(!g.length)return;
-        g.forEach(x=>x.nodeValue='');
-        g[0].nodeValue=lines[i];
-      });
-      return;
-    }
-  }
-
-  // For inline formatting without <br>, keep every existing element and
-  // replace only its own text. If the user supplies a single line, preserve
-  // the original formatted phrase where possible by using the original
-  // element boundaries rather than flattening innerHTML.
-  const direct=Array.from(n.children).filter(el=>el.textContent.trim());
-  if(direct.length>=2){
-    const normalized=text.replace(/\r/g,' ').replace(/\n/g,' ').replace(/\s+/g,' ').trim();
-    const separators=direct.filter(el=>/^[·•|]$/.test(el.textContent.trim()));
-    if(separators.length && direct.length-separators.length>=2){
-      const parts=normalized.split(/\s*[·•|]\s*/).map(v=>v.trim()).filter(Boolean);
-      const editable=direct.filter(el=>!separators.includes(el));
-      if(parts.length===editable.length){editable.forEach((el,i)=>el.textContent=parts[i]);return}
-    }
-  }
-
-  // Plain text target: there is no inline markup to preserve.
-  const walker=doc.createTreeWalker(n,NodeFilter.SHOW_TEXT);
-  const first=walker.nextNode();
-  if(first){
-    first.nodeValue=text;
-    while(walker.nextNode())walker.currentNode.nodeValue='';
-  }else n.textContent=text;
+  // Preserve existing inline markup (e.g. em/span) while replacing visible text nodes.
+  const lines=text.split(/\n/); const walker=doc.createTreeWalker(n,NodeFilter.SHOW_TEXT); const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+  if(!nodes.length){n.textContent=text;return}
+  // For simple elements, distribute lines across text nodes separated by <br> or inline tags.
+  if(lines.length===nodes.length){nodes.forEach((x,i)=>x.nodeValue=lines[i]);return}
+  // Fallback: preserve first-level inline structure where possible, using the full text with <br>.
+  n.innerHTML=''; const parts=text.split(/\n/); parts.forEach((p,i)=>{n.appendChild(doc.createTextNode(p));if(i<parts.length-1)n.appendChild(doc.createElement('br'))});
 }
-function applyText(){
- const n=node(); if(!n)return;
- textSetPreserve(n,$('content').value);
- n.style.fontSize=$('size').value+'px';
- n.style.lineHeight=$('line').value;
- // Do not flatten intentional child colors (e.g. PLAY/CONNECT/SMILE or colored <em>).
- // Only change color when the user actually changed the color control from its loaded value.
- const chosen=$('color').value.toLowerCase();
- if(chosen!==initialColor.toLowerCase()) {
-   n.style.color=chosen;
-   n.querySelectorAll('[class]').forEach(el=>{
-     const cs=computed(el);
-     if(cs.color && cs.color!==computed(n).color) el.style.color=chosen;
-   });
- }
- render();
-}
+function applyText(){const n=node();if(!n)return;textSetPreserve(n,$('content').value);n.style.fontSize=$('size').value+'px';n.style.lineHeight=$('line').value;n.style.color=$('color').value;render()}
 function resetText(){const fresh=parse();const t=TARGETS.find(x=>x.id===$('target').value);const old=doc.querySelector(t.selector),neu=fresh.querySelector(t.selector);if(old&&neu)old.replaceWith(neu);fill();render()}
 function imgTarget(){return $('imageTarget').value}
 function imageNode(key){
@@ -209,7 +106,33 @@ function imageNode(key){
 }
 function originalImageSrc(key){const m={headerLogo:'assets/logo-user.png',season1:'assets/seasons/season1.png',season2:'assets/seasons/season2.png'};return m[key]||null}
 function fileData(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file)})}
-async function applyImage(){const f=$('imageFile').files[0];if(!f){alert('새 사진을 먼저 선택해주세요.');return}const img=imageNode(imgTarget());if(!img)return;img.src=await fileData(f);if($('imgW').value)img.style.width=$('imgW').value+'px';if($('imgH').value)img.style.height=$('imgH').value+'px';img.style.objectFit='cover';render()}
+async function applyImage(){
+  const f=$('imageFile').files[0];
+  if(!f){alert('새 사진을 먼저 선택해주세요.');return}
+  const img=imageNode(imgTarget());
+  if(!img)return;
+  img.src=await fileData(f);
+  const w=$('imgW').value.trim(), h=$('imgH').value.trim();
+  img.style.objectFit='contain';
+  img.style.maxWidth='100%';
+  img.style.maxHeight='100%';
+  img.style.display='block';
+  img.style.margin='0 auto';
+  if(w && h){
+    img.style.width=w+'px';
+    img.style.height=h+'px';
+  }else if(w){
+    img.style.width=w+'px';
+    img.style.height='auto';
+  }else if(h){
+    img.style.width='auto';
+    img.style.height=h+'px';
+  }else{
+    img.style.width='100%';
+    img.style.height='100%';
+  }
+  render()
+}
 function resetImage(){const k=imgTarget(),img=imageNode(k),src=originalImageSrc(k);if(src){img.src=src;img.removeAttribute('style')}else{const box=doc.querySelector(k==='spaceLarge'?'.photo-placeholder.large':'.space-side .photo-placeholder');if(box)box.innerHTML='<span>'+ (k==='spaceLarge'?'SPACE PHOTO':'PLAY ZONE')+'</span>'+ (k==='spaceLarge'?'<small>실제 공간 사진으로 교체</small>':'')}render()}
 async function save(){
   if(!isAdminLoggedIn){alert('먼저 관리자 로그인을 해주세요.');return}
