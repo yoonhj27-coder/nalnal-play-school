@@ -39,7 +39,7 @@
   <div class="grid2"><div><label class="label">글자 크기 (px)</label><input id="size" class="input" type="number" min="8" max="120"></div><div><label class="label">행간</label><input id="line" class="input" type="number" min="0.8" max="3" step="0.05"></div></div>
   <label class="label">글자색</label><input id="color" class="color" type="color" value="#27344a">
   <div class="actions"><button id="applyText" class="btn dark">미리보기 반영</button><button id="resetText" class="btn gray">이 항목 원상복구</button></div>
-  <p class="help">내용은 줄바꿈을 그대로 반영합니다. 글자 크기·행간·색상은 선택한 항목에만 적용됩니다.</p>
+  <p class="help">내용은 Enter 줄바꿈을 그대로 반영합니다. 글자 크기·행간·색상은 선택한 항목에만 적용됩니다.</p>
  </section>
  <section class="box">
   <h2>② 사진 추가 / 교체</h2>
@@ -123,9 +123,25 @@ function textSetPreserve(n,text){
     return;
   }
 
+  // Plain-text targets behave like a word processor: every Enter in the
+  // textarea becomes a real <br> in the preview, regardless of how many
+  // line breaks the original homepage had.
+  const lines=text.replace(/\r/g,'').split('\n');
+  const hasInlineFormatting=Array.from(n.children).some(el=>el.tagName!=='BR');
+  if(!hasInlineFormatting){
+    while(n.firstChild)n.removeChild(n.firstChild);
+    lines.forEach((line,i)=>{
+      if(i)n.appendChild(doc.createElement('br'));
+      n.appendChild(doc.createTextNode(line));
+    });
+    return;
+  }
+
+  // If the target contains existing inline formatting (for example <em> or
+  // <strong>), preserve that structure and only use the original <br>
+  // boundaries when the number of lines still matches.
   const brs=Array.from(n.querySelectorAll('br'));
   if(brs.length){
-    const lines=text.replace(/\r/g,'').split('\n');
     const groups=[]; let group=[];
     const walker=doc.createTreeWalker(n,NodeFilter.SHOW_ALL);
     let cur;
