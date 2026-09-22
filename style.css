@@ -593,3 +593,129 @@ footer .footer-inner{
 /* override legacy logo selectors */
 .brand .header-logo-image{width:82px;height:auto;display:block;}
 .footer-brand img.footer-logo-image{display:block;width:137px;height:auto;flex:0 0 137px;}
+
+
+/* =========================================================
+   RESPONSIVE MOBILE PASS
+   PC layout above 800px is intentionally untouched.
+   ========================================================= */
+html,body{max-width:100%;overflow-x:hidden}
+img{max-width:100%}
+
+@media (max-width: 800px){
+  .nav-wrap{height:68px;padding:0 20px}
+  .brand .header-logo-image{width:74px}
+  .menu-btn{display:block;position:relative;z-index:31;color:#27344a;cursor:pointer;padding:6px}
+  .nav{
+    display:none;
+    position:absolute;
+    top:68px;left:12px;right:12px;
+    padding:14px;
+    flex-direction:column;
+    align-items:stretch;
+    gap:4px;
+    background:rgba(255,253,249,.98);
+    border:1px solid rgba(39,52,74,.08);
+    border-radius:18px;
+    box-shadow:0 18px 40px rgba(39,52,74,.12);
+    z-index:30;
+  }
+  .nav.mobile-open{display:flex}
+  .nav a{display:block;padding:12px 14px;font-size:12px;border-radius:10px}
+  .nav a:hover{background:#f4f7fa}
+  .nav-cta{padding:12px 14px!important}
+
+  .hero{min-height:auto}
+  .hero-inner{min-height:0;grid-template-columns:1fr;padding:58px 20px 76px;gap:10px}
+  .hero-copy{min-width:0}
+  .hero .eyebrow{font-size:11px;gap:7px;letter-spacing:.03em;white-space:nowrap}
+  .hero h1{font-size:clamp(42px,13vw,58px);line-height:1.12;margin:18px 0 20px;word-break:keep-all}
+  .hero-text{font-size:15px;line-height:1.75;margin-bottom:25px;word-break:keep-all}
+  .hero-buttons{display:grid;grid-template-columns:1fr;gap:9px}
+  .hero .btn{width:100%;justify-content:space-between;padding:15px 18px;font-size:16px}
+  .hero-art{height:300px;max-width:420px;margin:8px auto 0;transform:scale(.9);transform-origin:center top}
+  .hero-art .orange{width:130px;height:130px;right:5%;top:8%}
+  .hero-art .blue{width:125px;height:125px;left:8%;bottom:5%}
+  .hero-art .art-triangle{width:95px;height:88px;left:2%;top:17%}
+  .hero-art .green{width:48px;height:115px;right:4%;bottom:8%}
+  .hero-art .coral{width:43px;height:98px;left:40%;top:2%}
+  .hero-art .yellow{right:31%;bottom:3%}
+  .hero-art .mint{left:8%;bottom:0}
+  .scroll-note{display:none}
+
+  .section,.intro{padding:78px 20px}
+  .intro{padding-top:70px;padding-bottom:70px}
+  .intro-grid{grid-template-columns:1fr;gap:24px;margin-top:26px}
+  .intro h2,.section-head h2{font-size:clamp(39px,11vw,52px);line-height:1.12;word-break:keep-all}
+  .intro-copy{padding-top:0;font-size:15px;line-height:1.8}
+  .lead{font-size:20px}
+  .quote{margin-top:25px}
+
+  .section-head{display:block;margin-bottom:30px}
+  .section-head>p,.program .section-head>p,.space .section-head>p{
+    max-width:none;white-space:normal;margin-top:16px;font-size:14px;line-height:1.7
+  }
+  .program-grid{grid-template-columns:1fr;gap:14px}
+  .program-card{min-height:330px;border-radius:22px;padding:23px}
+  .big-icon{font-size:64px;margin:35px 0 14px}
+  .program-card h3{font-size:24px}
+  .program-card p{font-size:14px}
+  .program-card a{bottom:22px;font-size:16px}
+
+  .escape-inner{display:block;padding:76px 20px 82px}
+  .escape h2{font-size:clamp(42px,12vw,58px);line-height:1.08}
+  .escape-text{font-size:15px;line-height:1.75;margin:20px 0}
+  .escape-visual{height:570px;max-width:390px;margin:22px auto 0}
+  .escape-door{left:50%;transform:translateX(-50%) rotate(-5deg);top:8px;width:150px;height:252px}
+  .escape-lock{left:calc(50% + 44px);top:126px;width:62px;height:72px}
+  .season-grid{left:50%;transform:translateX(-50%);top:282px;width:min(340px,100%);grid-template-columns:1fr 1.18fr;column-gap:10px;row-gap:14px}
+  .season-poster-wrap{width:100%;max-width:140px}
+  .season-card.season-two .season-poster-wrap{width:100%;max-width:170px}
+  .season-label{height:32px;min-width:0;padding:0 10px;font-size:12px;margin-bottom:7px}
+  .season-label.current{min-width:0;font-size:14px}
+  .ended-badge{right:-7px;bottom:7px;padding:6px 8px;font-size:10px}
+
+  .space-grid{grid-template-columns:1fr;gap:14px}
+  .photo-placeholder{min-height:220px;border-radius:20px}
+  .photo-placeholder.large{min-height:270px}
+  .space-side{display:grid;grid-template-rows:220px auto;gap:14px}
+  .space-note{padding:22px;border-radius:20px;font-size:14px}
+  .space-note b{font-size:17px}
+
+  .contact-inner{width:calc(100% - 32px);padding:62px 0 50px}
+  .contact h2{font-size:clamp(40px,11vw,50px)}
+  .contact p{font-size:14px;line-height:1.75}
+  .contact-actions{margin-top:26px;padding-top:0;grid-template-columns:1fr;gap:10px}
+  .contact-card{height:94px;padding:13px 14px;border-radius:18px;gap:13px}
+  .contact-icon{width:48px;height:48px;flex-basis:48px;border-radius:15px}
+  .contact-card-text strong{font-size:17px}
+  .contact-card-text small{font-size:13px;white-space:normal;overflow-wrap:anywhere}
+
+  footer .footer-inner{width:calc(100% - 32px);padding:28px 0 22px}
+  .footer-brand{gap:16px;align-items:center}
+  .footer-brand > div{padding-left:16px}
+  .footer-logo-image{width:100px!important;flex-basis:100px!important}
+  .footer-brand b{font-size:17px}
+  .footer-brand span{font-size:10px}
+  .footer-socials{grid-template-columns:1fr;gap:9px}
+  .footer-social{height:58px;border-radius:14px;font-size:14px}
+  .social-icon{width:40px;height:40px;flex-basis:40px;border-radius:11px}
+  .footer-info{gap:9px;padding-top:15px}
+  .footer-info>a,.footer-info>span{font-size:14px;line-height:1.5}
+  .info-icon{width:26px;height:26px;flex-basis:26px}
+  .info-icon svg{width:24px;height:24px}
+  .copyright{font-size:11px}
+}
+
+@media (max-width: 420px){
+  .nav-wrap{padding:0 16px}
+  .hero-inner{padding-left:18px;padding-right:18px}
+  .hero h1{font-size:46px}
+  .hero-art{height:270px;transform:scale(.82)}
+  .section,.intro{padding-left:18px;padding-right:18px}
+  .program-card{min-height:315px}
+  .escape-inner{padding-left:18px;padding-right:18px}
+  .escape-visual{height:550px}
+  .season-grid{top:272px;width:315px}
+  .contact-inner,footer .footer-inner{width:calc(100% - 28px)}
+}
