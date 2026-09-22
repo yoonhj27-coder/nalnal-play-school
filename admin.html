@@ -96,44 +96,76 @@ function fill(){
  const t=TARGETS.find(x=>x.id===$('target').value); $('targetNote').textContent=t.note||'';
 }
 function textSetPreserve(n,text){
-  // Keep the homepage's existing inline markup (span/em/b/etc.) and only replace text nodes.
-  const walker=doc.createTreeWalker(n,NodeFilter.SHOW_TEXT);
-  const nodes=[]; while(walker.nextNode()) nodes.push(walker.currentNode);
-  if(!nodes.length){n.textContent=text;return}
+  // Never rebuild the target element's HTML. We only replace text inside the
+  // existing text containers so all original colors, <em>/<strong>/<span>,
+  // <br>, spacing and layout remain intact.
+  if(n.matches && n.matches('.hero-eyebrow')){
+    const spans=[
+      n.querySelector('.eyebrow-play'),
+      n.querySelector('.eyebrow-connect'),
+      n.querySelector('.eyebrow-smile')
+    ];
+    // The textarea can contain visual line wraps/newlines from innerText.
+    // Normalize them first, then split on the real separator used by the
+    // original design. This prevents PLAY/CONNECT/SMILE from being split
+    // character-by-character.
+    const normalized=text.replace(/\r/g,' ').replace(/\n/g,' ').replace(/\s+/g,' ').trim();
+    let parts=normalized.split(/\s*[·•]\s*/).map(v=>v.trim()).filter(Boolean);
+    if(parts.length<3){
+      const lineParts=text.replace(/\r/g,'\n').split(/\n+/).map(v=>v.trim()).filter(v=>v && !/^[·•]$/.test(v));
+      if(lineParts.length>=3) parts=lineParts.slice(0,3);
+    }
+    if(parts.length<3){
+      const words=normalized.split(/\s+/).filter(Boolean);
+      if(words.length>=3) parts=[words[0],words[1],words.slice(2).join(' ')];
+    }
+    spans.forEach((el,i)=>{if(el&&parts[i]!==undefined)el.textContent=parts[i]});
+    return;
+  }
 
-  // Respect explicit <br> line breaks. Text is distributed into the existing text-node
-  // structure instead of replacing innerHTML, so classes/colors/formatting survive.
-  const parts=text.split(/\n/);
   const brs=Array.from(n.querySelectorAll('br'));
-  if(brs.length>0 && parts.length===brs.length+1){
-    let group=[], groups=[];
-    const walker2=doc.createTreeWalker(n,NodeFilter.SHOW_TEXT|NodeFilter.SHOW_ELEMENT);
+  if(brs.length){
+    const lines=text.replace(/\r/g,'').split('\n');
+    const groups=[]; let group=[];
+    const walker=doc.createTreeWalker(n,NodeFilter.SHOW_ALL);
     let cur;
-    while(cur=walker2.nextNode()){
+    while(cur=walker.nextNode()){
       if(cur.nodeType===Node.TEXT_NODE) group.push(cur);
-      else if(cur.tagName==='BR'){groups.push(group);group=[];}
+      else if(cur.nodeType===Node.ELEMENT_NODE && cur.tagName==='BR'){groups.push(group);group=[];}
     }
     groups.push(group);
-    if(groups.length===parts.length){
+    if(groups.length===lines.length){
       groups.forEach((g,i)=>{
         if(!g.length)return;
         g.forEach(x=>x.nodeValue='');
-        g[0].nodeValue=parts[i];
+        g[0].nodeValue=lines[i];
       });
       return;
     }
   }
 
-  // For inline-only markup such as the colored PLAY/CONNECT/SMILE spans,
-  // keep each existing text-node container and distribute the edited text across it.
-  const compact=parts.join('');
-  let pos=0;
-  nodes.forEach((x,i)=>{
-    if(i===nodes.length-1){x.nodeValue=compact.slice(pos);return;}
-    const oldLen=(x.nodeValue||'').length;
-    x.nodeValue=compact.slice(pos,pos+oldLen);
-    pos+=oldLen;
-  });
+  // For inline formatting without <br>, keep every existing element and
+  // replace only its own text. If the user supplies a single line, preserve
+  // the original formatted phrase where possible by using the original
+  // element boundaries rather than flattening innerHTML.
+  const direct=Array.from(n.children).filter(el=>el.textContent.trim());
+  if(direct.length>=2){
+    const normalized=text.replace(/\r/g,' ').replace(/\n/g,' ').replace(/\s+/g,' ').trim();
+    const separators=direct.filter(el=>/^[·•|]$/.test(el.textContent.trim()));
+    if(separators.length && direct.length-separators.length>=2){
+      const parts=normalized.split(/\s*[·•|]\s*/).map(v=>v.trim()).filter(Boolean);
+      const editable=direct.filter(el=>!separators.includes(el));
+      if(parts.length===editable.length){editable.forEach((el,i)=>el.textContent=parts[i]);return}
+    }
+  }
+
+  // Plain text target: there is no inline markup to preserve.
+  const walker=doc.createTreeWalker(n,NodeFilter.SHOW_TEXT);
+  const first=walker.nextNode();
+  if(first){
+    first.nodeValue=text;
+    while(walker.nextNode())walker.currentNode.nodeValue='';
+  }else n.textContent=text;
 }
 function applyText(){
  const n=node(); if(!n)return;
