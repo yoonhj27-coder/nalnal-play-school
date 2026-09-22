@@ -80,23 +80,78 @@ function render(){
   status('미리보기 반영 완료');
 }
 function computed(n){return getComputedStyle(n)}
+let initialColor='#27344a';
+let initialSize=16;
+let initialLine=1.5;
 function fill(){
  const n=node(); if(!n)return;
  $('content').value=n.innerText.replace(/\n$/,'');
- const c=computed(n); $('size').value=parseFloat(n.style.fontSize)||parseFloat(c.fontSize)||16; $('line').value=parseFloat(n.style.lineHeight)||1.5;
- const rgb=c.color.match(/\d+/g); if(rgb&&rgb.length>=3)$('color').value='#'+rgb.slice(0,3).map(x=>parseInt(x).toString(16).padStart(2,'0')).join('');
+ const c=computed(n);
+ initialSize=parseFloat(n.style.fontSize)||parseFloat(c.fontSize)||16;
+ initialLine=parseFloat(n.style.lineHeight)||1.5;
+ $('size').value=initialSize; $('line').value=initialLine;
+ const rgb=c.color.match(/\d+/g);
+ initialColor=(rgb&&rgb.length>=3)?'#'+rgb.slice(0,3).map(x=>parseInt(x).toString(16).padStart(2,'0')).join(''):'#27344a';
+ $('color').value=initialColor;
  const t=TARGETS.find(x=>x.id===$('target').value); $('targetNote').textContent=t.note||'';
 }
 function textSetPreserve(n,text){
-  // Preserve existing inline markup (e.g. em/span) while replacing visible text nodes.
-  const lines=text.split(/\n/); const walker=doc.createTreeWalker(n,NodeFilter.SHOW_TEXT); const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+  // Keep the homepage's existing inline markup (span/em/b/etc.) and only replace text nodes.
+  const walker=doc.createTreeWalker(n,NodeFilter.SHOW_TEXT);
+  const nodes=[]; while(walker.nextNode()) nodes.push(walker.currentNode);
   if(!nodes.length){n.textContent=text;return}
-  // For simple elements, distribute lines across text nodes separated by <br> or inline tags.
-  if(lines.length===nodes.length){nodes.forEach((x,i)=>x.nodeValue=lines[i]);return}
-  // Fallback: preserve first-level inline structure where possible, using the full text with <br>.
-  n.innerHTML=''; const parts=text.split(/\n/); parts.forEach((p,i)=>{n.appendChild(doc.createTextNode(p));if(i<parts.length-1)n.appendChild(doc.createElement('br'))});
+
+  // Respect explicit <br> line breaks. Text is distributed into the existing text-node
+  // structure instead of replacing innerHTML, so classes/colors/formatting survive.
+  const parts=text.split(/\n/);
+  const brs=Array.from(n.querySelectorAll('br'));
+  if(brs.length>0 && parts.length===brs.length+1){
+    let group=[], groups=[];
+    const walker2=doc.createTreeWalker(n,NodeFilter.SHOW_TEXT|NodeFilter.SHOW_ELEMENT);
+    let cur;
+    while(cur=walker2.nextNode()){
+      if(cur.nodeType===Node.TEXT_NODE) group.push(cur);
+      else if(cur.tagName==='BR'){groups.push(group);group=[];}
+    }
+    groups.push(group);
+    if(groups.length===parts.length){
+      groups.forEach((g,i)=>{
+        if(!g.length)return;
+        g.forEach(x=>x.nodeValue='');
+        g[0].nodeValue=parts[i];
+      });
+      return;
+    }
+  }
+
+  // For inline-only markup such as the colored PLAY/CONNECT/SMILE spans,
+  // keep each existing text-node container and distribute the edited text across it.
+  const compact=parts.join('');
+  let pos=0;
+  nodes.forEach((x,i)=>{
+    if(i===nodes.length-1){x.nodeValue=compact.slice(pos);return;}
+    const oldLen=(x.nodeValue||'').length;
+    x.nodeValue=compact.slice(pos,pos+oldLen);
+    pos+=oldLen;
+  });
 }
-function applyText(){const n=node();if(!n)return;textSetPreserve(n,$('content').value);n.style.fontSize=$('size').value+'px';n.style.lineHeight=$('line').value;n.style.color=$('color').value;render()}
+function applyText(){
+ const n=node(); if(!n)return;
+ textSetPreserve(n,$('content').value);
+ n.style.fontSize=$('size').value+'px';
+ n.style.lineHeight=$('line').value;
+ // Do not flatten intentional child colors (e.g. PLAY/CONNECT/SMILE or colored <em>).
+ // Only change color when the user actually changed the color control from its loaded value.
+ const chosen=$('color').value.toLowerCase();
+ if(chosen!==initialColor.toLowerCase()) {
+   n.style.color=chosen;
+   n.querySelectorAll('[class]').forEach(el=>{
+     const cs=computed(el);
+     if(cs.color && cs.color!==computed(n).color) el.style.color=chosen;
+   });
+ }
+ render();
+}
 function resetText(){const fresh=parse();const t=TARGETS.find(x=>x.id===$('target').value);const old=doc.querySelector(t.selector),neu=fresh.querySelector(t.selector);if(old&&neu)old.replaceWith(neu);fill();render()}
 function imgTarget(){return $('imageTarget').value}
 function imageNode(key){
